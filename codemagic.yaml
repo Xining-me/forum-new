@@ -1,41 +1,38 @@
-# 工作流名称
+# 工作流配置
 workflows:
   android-gradle-build:
     name: Android CI - Gradle build
     
-    # 触发条件（Codemagic 规范：使用 triggers 而非 on）
+    # 触发条件（Codemagic 正确语法）
     triggers:
-      - push:
-          branches:
-            - main
-      - workflow_dispatch:
-          inputs:
-            build_type:
-              description: 'build type (debug or release)'
-              required: false
-              default: 'debug'
+      push:
+        branches:
+          - main
+      workflow_dispatch:
+        inputs:
+          build_type:
+            description: 'build type (debug or release)'
+            required: false
+            default: 'debug'
     
-    # 环境配置（Codemagic 规范：使用 environment 而非 env）
+    # 环境配置（移除 variables 嵌套）
     environment:
       node: 18
       java: 17
-      variables:
-        ANDROID_API_LEVEL: 33
-        BUILD_TOOLS_VERSION: '33.0.2'
+      ANDROID_API_LEVEL: 33
+      BUILD_TOOLS_VERSION: '33.0.2'
     
-    # 执行环境（Codemagic 规范：使用 instance_type 而非 runs-on）
+    # 执行环境
     instance_type: mac_mini_m1
     
-    # 构建步骤（Codemagic 规范：直接使用 scripts 而非 steps）
+    # 构建脚本
     scripts:
-      # 检出代码仓库
       - name: Checkout repository
         script: |
           git clone --branch main $CM_REPOSITORY_URL .
           git checkout $CM_COMMIT_HASH
           git fetch --depth=0
       
-      # 安装 npm 依赖
       - name: Install npm dependencies
         script: |
           if [ -f package-lock.json ]; then
@@ -44,14 +41,12 @@ workflows:
             npm install
           fi
       
-      # 配置 Android SDK
       - name: Configure Android SDK
         script: |
           echo "Configuring Android SDK..."
           sdkmanager "platform-tools" "platforms;android-$ANDROID_API_LEVEL" "build-tools;$BUILD_TOOLS_VERSION"
           yes | sdkmanager --licenses || true
       
-      # 准备 JS Bundle
       - name: Prepare JS bundle
         script: |
           mkdir -p android/app/src/main/assets
@@ -60,7 +55,6 @@ workflows:
             npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
           fi
       
-      # Gradle 构建
       - name: Build with Gradle
         script: |
           cd android
